@@ -5,8 +5,8 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
+    MainWindow w("127.0.0.1",5555);
     w.show();
-  //  QByteArray e()
+
     return a.exec();
 }

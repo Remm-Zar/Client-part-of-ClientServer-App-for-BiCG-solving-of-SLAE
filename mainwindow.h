@@ -18,7 +18,7 @@ class MainWindow : public QMainWindow
 
 public:
     QTcpSocket *m_socket;
-    QByteArray data;
+    QByteArray m_data;
     quint16 m_nextBlockSize;
     QTextEdit *m_txtInfo;
     QLineEdit *m_txtInput;

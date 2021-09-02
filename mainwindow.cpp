@@ -6,6 +6,7 @@
 #include <QLayout>
 #include <QLabel>
 #include <QDataStream>
+#include <QFile>
 
 
 MainWindow::MainWindow(const QString &host,int port,QWidget *parent)
@@ -48,13 +49,24 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
 }
 void MainWindow::slotSendToServer()
 {
+    QString fileName=m_txtInput->text();
+    QFile file("C:/Users/Hp/Desktop/QT projects/"+fileName);
+    file.open(QIODevice::ReadOnly);
     QByteArray arr;
     QDataStream out(&arr,QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_9);
-    out<<quint16{0}<<m_txtInput->text();
+    out<<quint16{0};
+    QByteArray q=file.readAll();
+    arr.append(q);
     out.device()->seek(0);
     out<<quint16(arr.size()-sizeof(quint16));
-    m_socket->write(arr);
+    qint64 x=0;
+    while (x<arr.size())
+    {
+        qint64 y=m_socket->write(arr);
+        x+=y;
+    }
+
     m_txtInput->clear();
 }
 void MainWindow::slotConnected()
@@ -67,27 +79,36 @@ void MainWindow::sockDisc()
 }
 void MainWindow::sockReady()
 {
+    m_txtInfo->clear();
     qDebug()<<"status: sockReady";
     QDataStream in(m_socket);
     in.setVersion(QDataStream::Qt_5_9);
-    for (;;)
+
+    if (!m_nextBlockSize)
     {
-        if (!m_nextBlockSize)
+        if (m_socket->bytesAvailable()<sizeof(quint16))
         {
-            if (m_socket->bytesAvailable()<sizeof(quint16))
-            {
-                qDebug()<<"1:"<<m_socket->bytesAvailable();
-                break;
-            }
-            in>>m_nextBlockSize;
+            qDebug()<<"1:"<<m_socket->bytesAvailable();
+            return;
         }
-        if (m_socket->bytesAvailable()<m_nextBlockSize)
-        {
-            qDebug()<<"2";
-            break;
-        }
-        in>>data;
-        m_txtInfo->append(data);
-        m_nextBlockSize=0;
+        in>>m_nextBlockSize;
     }
+    if (m_socket->bytesAvailable()<m_nextBlockSize)
+    {
+        qDebug()<<"2";
+        return;
+    }
+    m_data=m_socket->readAll();
+    double *N;
+    N=new double[m_data.size()/sizeof (double)];
+    memcpy(N,m_data.data(),m_data.size());
+    for (unsigned int i=0;i<m_data.size()/sizeof (double);++i)
+    {
+        qDebug()<<N[i]<<" ";
+        m_txtInfo->insertPlainText(QString::number(N[i])+" ");
+    }
+
+    delete N;
+
+
 }

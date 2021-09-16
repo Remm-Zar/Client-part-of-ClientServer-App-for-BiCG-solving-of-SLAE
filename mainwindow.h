@@ -4,9 +4,11 @@
 #include <QMainWindow>
 #include <QTcpSocket>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QDebug>
 #include <QTextEdit>
 #include <QLineEdit>
+#include <QTime>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,14 +21,20 @@ class MainWindow : public QMainWindow
 public:
     QTcpSocket *m_socket;
     QByteArray m_data;
-    quint16 m_nextBlockSize;
+    quint64 m_nextBlockSize;
     QTextEdit *m_txtInfo;
-    QLineEdit *m_txtInput;
+    QLineEdit *m_txtMat;
+    QLineEdit *m_txtVec;
+    QPushButton *button;
+    QTime start;
+    QTime end;
 
     MainWindow(const QString &host,int port,QWidget *parent = nullptr);
     ~MainWindow();
 
+
 public slots:
+
     void sockReady();
     void sockDisc();
     void slotError(QAbstractSocket::SocketError err);

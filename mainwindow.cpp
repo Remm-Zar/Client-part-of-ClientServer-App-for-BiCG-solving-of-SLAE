@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QDataStream>
 #include <QFile>
+#include <QTime>
 
 
 MainWindow::MainWindow(const QString &host,int port,QWidget *parent)
@@ -22,16 +23,19 @@ MainWindow::MainWindow(const QString &host,int port,QWidget *parent)
     connect(m_socket,SIGNAL(readyRead()),this,SLOT(sockReady()));
     connect(m_socket,SIGNAL(disconnected()),this,SLOT(sockDisc()));
     m_txtInfo=new QTextEdit;
-    m_txtInput=new QLineEdit;
+    m_txtMat=new QLineEdit;
+    m_txtVec=new QLineEdit;
     m_txtInfo->setReadOnly(true);
-    QPushButton *button=new QPushButton("&Send");
+    button=new QPushButton("&Send");
 
     connect(button,SIGNAL(clicked()),this,SLOT(slotSendToServer()));
-    connect(m_txtInput,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
+    connect(m_txtMat,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
+   // connect(m_txtVec,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
     QVBoxLayout *vbox=new QVBoxLayout;
     vbox->addWidget(new QLabel("Client"));
     vbox->addWidget(m_txtInfo);
-    vbox->addWidget(m_txtInput);
+    vbox->addWidget(m_txtMat);
+    vbox->addWidget(m_txtVec);
     vbox->addWidget(button);
     ui->centralwidget->setLayout(vbox);
 
@@ -49,25 +53,45 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
 }
 void MainWindow::slotSendToServer()
 {
-    QString fileName=m_txtInput->text();
-    QFile file("C:/Users/Hp/Desktop/QT projects/"+fileName);
-    file.open(QIODevice::ReadOnly);
-    QByteArray arr;
-    QDataStream out(&arr,QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_5_9);
-    out<<quint16{0};
-    QByteArray q=file.readAll();
-    arr.append(q);
-    out.device()->seek(0);
-    out<<quint16(arr.size()-sizeof(quint16));
-    qint64 x=0;
-    while (x<arr.size())
+    m_txtInfo->clear();
+    QString fileNameMat=m_txtMat->text(),fileNameVec=m_txtVec->text();
+    QFile fileMat("C:/Users/Hp/Desktop/QT projects/ClientApp/"+fileNameMat),fileVec("C:/Users/Hp/Desktop/QT projects/ClientApp/"+fileNameVec);
+    if (fileMat.open(QIODevice::ReadOnly)&&fileVec.open(QIODevice::ReadOnly))
     {
-        qint64 y=m_socket->write(arr);
-        x+=y;
+        m_txtInfo->insertPlainText("Waiting...\n");
+        qDebug()<<"Prepairing of data\n";
+        QByteArray arr;
+        QDataStream out(&arr,QIODevice::WriteOnly);
+        out.setVersion(QDataStream::Qt_5_9);
+        out<<quint64{0}<<quint64{0};
+        QByteArray q=fileMat.readAll();
+        qint64 size=quint64(q.size());
+        arr.append(q);
+        q.clear();
+        q=fileVec.readAll();
+        arr.append(q);
+        out.device()->seek(0);
+        out<<quint64(arr.size()-2*sizeof(quint64));
+        out<<size;
+        qint64 x=0;
+        start=QTime::currentTime();
+        qDebug()<<"Sending of data\n";
+        while (x<arr.size())
+        {
+            qint64 y=m_socket->write(arr);
+            x+=y;
+        }
+        qDebug()<<"Data has sent";
+        m_txtMat->clear();
+        m_txtVec->clear();
     }
+    else
+    {
+        m_txtInfo->insertPlainText("Files don't exist");
+    }
+    fileMat.close();
+    fileVec.close();
 
-    m_txtInput->clear();
 }
 void MainWindow::slotConnected()
 {
@@ -80,7 +104,6 @@ void MainWindow::sockDisc()
 void MainWindow::sockReady()
 {
     m_txtInfo->clear();
-    qDebug()<<"status: sockReady";
     QDataStream in(m_socket);
     in.setVersion(QDataStream::Qt_5_9);
 
@@ -98,17 +121,10 @@ void MainWindow::sockReady()
         qDebug()<<"2";
         return;
     }
+    QTime diff;
+    in>>diff;
     m_data=m_socket->readAll();
-    double *N;
-    N=new double[m_data.size()/sizeof (double)];
-    memcpy(N,m_data.data(),m_data.size());
-    for (unsigned int i=0;i<m_data.size()/sizeof (double);++i)
-    {
-        qDebug()<<N[i]<<" ";
-        m_txtInfo->insertPlainText(QString::number(N[i])+" ");
-    }
-
-    delete N;
-
+    end=QTime::currentTime();
+    m_txtInfo->insertPlainText("Answer: \n"+QString(m_data.toStdString().c_str())+"\nSolving time: "+QString::number(diff.msec())+" msec\n"+"Total time: "+QString::number(end.addMSecs(start.msec()).msec())+" msec");
 
 }

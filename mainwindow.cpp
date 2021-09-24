@@ -29,8 +29,8 @@ MainWindow::MainWindow(const QString &host,int port,QWidget *parent)
     button=new QPushButton("&Send");
 
     connect(button,SIGNAL(clicked()),this,SLOT(slotSendToServer()));
-    connect(m_txtMat,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
-   // connect(m_txtVec,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
+    //connect(m_txtMat,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
+    connect(m_txtVec,SIGNAL(returnPressed()),this,SLOT(slotSendToServer()));
     QVBoxLayout *vbox=new QVBoxLayout;
     vbox->addWidget(new QLabel("Client"));
     vbox->addWidget(m_txtInfo);
@@ -53,6 +53,7 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
 }
 void MainWindow::slotSendToServer()
 {
+    qDebug()<<m_socket->size();
     m_txtInfo->clear();
     QString fileNameMat=m_txtMat->text(),fileNameVec=m_txtVec->text();
     QFile fileMat("C:/Users/Hp/Desktop/QT projects/ClientApp/"+fileNameMat),fileVec("C:/Users/Hp/Desktop/QT projects/ClientApp/"+fileNameVec);
@@ -65,12 +66,13 @@ void MainWindow::slotSendToServer()
         out.setVersion(QDataStream::Qt_5_9);
         out<<quint64{0}<<quint64{0};
         QByteArray q=fileMat.readAll();
-        qint64 size=quint64(q.size());
+        quint64 size=quint64(q.size());
         arr.append(q);
         q.clear();
         q=fileVec.readAll();
         arr.append(q);
         out.device()->seek(0);
+
         out<<quint64(arr.size()-2*sizeof(quint64));
         out<<size;
         qint64 x=0;
@@ -81,7 +83,7 @@ void MainWindow::slotSendToServer()
             qint64 y=m_socket->write(arr);
             x+=y;
         }
-        qDebug()<<"Data has sent";
+        qDebug()<<"Data has sent.Size: "<<arr.size()<<" bytes";
         m_txtMat->clear();
         m_txtVec->clear();
     }
@@ -99,6 +101,8 @@ void MainWindow::slotConnected()
 }
 void MainWindow::sockDisc()
 {
+    m_txtInfo->clear();
+    m_txtInfo->insertPlainText("Socket closed. Goodbye");
     m_socket->deleteLater();
 }
 void MainWindow::sockReady()
@@ -125,6 +129,6 @@ void MainWindow::sockReady()
     in>>diff;
     m_data=m_socket->readAll();
     end=QTime::currentTime();
-    m_txtInfo->insertPlainText("Answer: \n"+QString(m_data.toStdString().c_str())+"\nSolving time: "+QString::number(diff.msec())+" msec\n"+"Total time: "+QString::number(end.addMSecs(start.msec()).msec())+" msec");
-
+    m_txtInfo->insertPlainText("Answer: \n"+QString(m_data.toStdString().c_str())+"\nSolving time: "+QString::number(diff.msec())+" msec\n"+"Total time: "+QString::number(end.addMSecs(-start.msec()).msec())+" msec");
+    m_nextBlockSize=0;
 }

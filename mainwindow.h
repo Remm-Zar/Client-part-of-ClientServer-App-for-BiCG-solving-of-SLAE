@@ -21,7 +21,7 @@ class MainWindow : public QMainWindow
 public:
     QTcpSocket *m_socket;
     QByteArray m_data;
-    quint64 m_nextBlockSize;
+    qint64 m_nextBlockSize;
     QTextEdit *m_txtInfo;
     QLineEdit *m_txtMat;
     QLineEdit *m_txtVec;

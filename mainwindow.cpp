@@ -101,7 +101,6 @@ void MainWindow::slotConnected()
 }
 void MainWindow::sockDisc()
 {
-    m_txtInfo->clear();
     m_txtInfo->insertPlainText("Socket closed. Goodbye");
     m_socket->deleteLater();
 }

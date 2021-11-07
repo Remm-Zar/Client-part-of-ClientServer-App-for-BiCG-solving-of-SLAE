@@ -38,7 +38,6 @@ public slots:
     void sockReady();
     void sockDisc();
     void slotError(QAbstractSocket::SocketError err);
-    void slotSendToServer();
     void slotConnected();
 
 private:
